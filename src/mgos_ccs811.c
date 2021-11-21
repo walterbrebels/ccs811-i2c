@@ -185,35 +185,18 @@ bool mgos_ccs811_read(struct mgos_ccs811 *sensor) {
     return true;
   }
 
-  uint8_t cmd = MGOS_CCS811_REG_ALG_RESULT_DATA;
-
-  if (!mgos_i2c_write(sensor->i2c, sensor->i2caddr, &cmd, 1, false)) {
-    LOG(LL_ERROR, ("Write error"));
-    return false;
-  }
-
+  uint8_t reg = MGOS_CCS811_REG_ALG_RESULT_DATA;
   uint8_t data[6];
 
-  if (!mgos_i2c_read(sensor->i2c, sensor->i2caddr, data, 6, true)) {
+  if (!mgos_i2c_read_reg_n(sensor->i2c, sensor->i2caddr, reg, sizeof(data), data)) {
     LOG(LL_ERROR, ("Read error"));
     return false;
   }
 
-  // bytes 0-1:eco2 2-3:tvoc 4:status 5:error 6-7: raw_data
+  // bytes 0-1:eco2 2-3:tvoc 4:status 5:error
   if (data[4] & MGOS_CCS811_STATUS_ERR) {
     LOG(LL_ERROR, ("Read error: 0x%02x", data[5]));
-
-    uint8_t error_id_cmd = MGOS_CCS811_REG_ERROR_ID;
-    uint8_t error_id;
-
-    if (!mgos_i2c_write(sensor->i2c, sensor->i2caddr, &error_id_cmd, 1, false)) {
-      LOG(LL_ERROR, ("Write error"));
-      return false;
-    }
-    if (!mgos_i2c_read(sensor->i2c, sensor->i2caddr, &error_id, 1, true)) {
-      LOG(LL_ERROR, ("Read error"));
-      return false;
-    }
+    uint8_t error_id = mgos_i2c_read_reg_b(sensor->i2c, sensor->i2caddr, MGOS_CCS811_REG_ERROR_ID);;
     LOG(LL_INFO, ("Read ERROR_ID: 0x%02x", error_id));
     return false;
   }
